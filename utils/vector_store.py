@@ -9,9 +9,10 @@ store = {
     "embeddings": []
 }
 
-def create_collection(collection_name):
-    store["chunks"] = []
-    store["embeddings"] = []
+def create_collection(collection_name, reset=False):
+    if reset:
+        store["chunks"] = []
+        store["embeddings"] = []
     return collection_name
 
 def add_chunks(collection, chunks, doc_name):

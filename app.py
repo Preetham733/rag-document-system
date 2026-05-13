@@ -49,11 +49,11 @@ with st.sidebar:
                     all_chunks.extend(chunks)
 
                 doc_name = "multi_doc_collection"
-                collection = create_collection(doc_name)
+                collection = create_collection(doc_name, reset=True)
                 add_chunks(collection, all_chunks, doc_name)
 
                 st.session_state.collection = collection
-                st.session_state.doc_name = f"{len(uploaded_files)} documents"
+                st.session_state.doc_name = f"{len(uploaded_files)} document(s) loaded"
                 st.session_state.messages = []
 
                 st.success(f"✅ Processed {len(all_chunks)} chunks from {len(uploaded_files)} documents!")
