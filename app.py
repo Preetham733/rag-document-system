@@ -29,6 +29,8 @@ if "store_chunks" not in st.session_state:
     st.session_state.store_chunks = []
 if "store_embeddings" not in st.session_state:
     st.session_state.store_embeddings = []
+if "store_doc_names" not in st.session_state:
+    st.session_state.store_doc_names = []
 
 # ── Sidebar ──
 with st.sidebar:
@@ -47,26 +49,25 @@ with st.sidebar:
                 # Reset store
                 st.session_state.store_chunks = []
                 st.session_state.store_embeddings = []
+                st.session_state.store_doc_names = []
 
-                all_chunks = []
                 for uploaded_file in uploaded_files:
                     temp_path = f"data/{uploaded_file.name}"
                     with open(temp_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
                     text = extract_text_from_pdf(temp_path)
                     chunks = chunk_text(text)
-                    all_chunks.extend(chunks)
+                    doc_name = uploaded_file.name.replace(".pdf", "")
+                    collection = create_collection(doc_name)
+                    add_chunks(collection, chunks, doc_name, st.session_state)
                     st.write(f"✅ {uploaded_file.name} — {len(chunks)} chunks")
 
-                doc_name = "multi_doc_collection"
-                collection = create_collection(doc_name)
-                add_chunks(collection, all_chunks, doc_name, st.session_state)
-
-                st.session_state.collection = collection
+                st.session_state.collection = "multi_doc"
                 st.session_state.doc_name = f"{len(uploaded_files)} document(s) loaded"
                 st.session_state.messages = []
 
-                st.success(f"✅ Total {len(all_chunks)} chunks from {len(uploaded_files)} documents!")
+                total = len(st.session_state.store_chunks)
+                st.success(f"✅ Total {total} chunks from {len(uploaded_files)} documents!")
 
     if st.session_state.doc_name:
         st.info(f"📄 Active: {st.session_state.doc_name}")
@@ -87,26 +88,27 @@ else:
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Searching document..."):
+            with st.spinner("Searching documents..."):
                 relevant_chunks = search_chunks(
                     st.session_state.collection,
                     prompt,
-                    n_results=5,
+                    n_results=15,
                     session_state=st.session_state
                 )
                 context = "\n\n".join(relevant_chunks)
 
-                system_prompt = f"""You are a helpful assistant that answers questions 
-                based on the provided document context.
-                
+                system_prompt = f"""You are a helpful assistant that answers questions
+                based on the provided document context. Multiple documents have been uploaded.
+
                 DOCUMENT CONTEXT:
                 {context}
-                
+
                 INSTRUCTIONS:
                 - Answer only based on the document context above
-                - If the answer is not in the context say "I couldn't find that in the document"
+                - Search through ALL the context carefully before answering
+                - If the answer is not in the context say "I couldn't find that in the documents"
                 - Be clear and concise
-                - Quote relevant parts when helpful
+                - Mention which document the answer is from if possible
                 """
 
                 response = client.chat.completions.create(
