@@ -26,33 +26,36 @@ if "collection" not in st.session_state:
 if "doc_name" not in st.session_state:
     st.session_state.doc_name = None
 
-# ── Sidebar - Upload ──
+# ── Sidebar ──
 with st.sidebar:
-    st.header("📁 Upload Document")
-    uploaded_file = st.file_uploader("Choose a PDF", type=["pdf"])
+    st.header("📁 Upload Documents")
+    uploaded_files = st.file_uploader(
+        "Choose PDFs",
+        type=["pdf"],
+        accept_multiple_files=True
+    )
 
-    if uploaded_file:
-        if st.button("Process Document"):
-            with st.spinner("Reading and processing document..."):
-                # Save file temporarily
-                temp_path = f"data/{uploaded_file.name}"
-                with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+    if uploaded_files:
+        if st.button("Process Documents"):
+            with st.spinner("Processing documents..."):
+                all_chunks = []
+                for uploaded_file in uploaded_files:
+                    temp_path = f"data/{uploaded_file.name}"
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    text = extract_text_from_pdf(temp_path)
+                    chunks = chunk_text(text)
+                    all_chunks.extend(chunks)
 
-                # Extract and chunk
-                text = extract_text_from_pdf(temp_path)
-                chunks = chunk_text(text)
-
-                # Store in ChromaDB
-                doc_name = uploaded_file.name.replace(".pdf", "").replace(" ", "_")
+                doc_name = "multi_doc_collection"
                 collection = create_collection(doc_name)
-                add_chunks(collection, chunks, doc_name)
+                add_chunks(collection, all_chunks, doc_name)
 
                 st.session_state.collection = collection
-                st.session_state.doc_name = uploaded_file.name
+                st.session_state.doc_name = f"{len(uploaded_files)} documents"
                 st.session_state.messages = []
 
-                st.success(f"✅ Processed {len(chunks)} chunks from {uploaded_file.name}")
+                st.success(f"✅ Processed {len(all_chunks)} chunks from {len(uploaded_files)} documents!")
 
     if st.session_state.doc_name:
         st.info(f"📄 Active: {st.session_state.doc_name}")
@@ -61,7 +64,6 @@ with st.sidebar:
 if st.session_state.collection is None:
     st.info("👈 Upload a PDF from the sidebar to get started!")
 else:
-    # Display chat history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -75,7 +77,6 @@ else:
 
         with st.chat_message("assistant"):
             with st.spinner("Searching document..."):
-                # Find relevant chunks
                 relevant_chunks = search_chunks(
                     st.session_state.collection,
                     prompt,
