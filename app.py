@@ -25,6 +25,10 @@ if "collection" not in st.session_state:
     st.session_state.collection = None
 if "doc_name" not in st.session_state:
     st.session_state.doc_name = None
+if "store_chunks" not in st.session_state:
+    st.session_state.store_chunks = []
+if "store_embeddings" not in st.session_state:
+    st.session_state.store_embeddings = []
 
 # ── Sidebar ──
 with st.sidebar:
@@ -39,6 +43,11 @@ with st.sidebar:
         if st.button("Process Documents"):
             with st.spinner("Processing documents..."):
                 os.makedirs("data", exist_ok=True)
+
+                # Reset store
+                st.session_state.store_chunks = []
+                st.session_state.store_embeddings = []
+
                 all_chunks = []
                 for uploaded_file in uploaded_files:
                     temp_path = f"data/{uploaded_file.name}"
@@ -47,16 +56,17 @@ with st.sidebar:
                     text = extract_text_from_pdf(temp_path)
                     chunks = chunk_text(text)
                     all_chunks.extend(chunks)
+                    st.write(f"✅ {uploaded_file.name} — {len(chunks)} chunks")
 
                 doc_name = "multi_doc_collection"
-                collection = create_collection(doc_name, reset=True)
-                add_chunks(collection, all_chunks, doc_name)
+                collection = create_collection(doc_name)
+                add_chunks(collection, all_chunks, doc_name, st.session_state)
 
                 st.session_state.collection = collection
                 st.session_state.doc_name = f"{len(uploaded_files)} document(s) loaded"
                 st.session_state.messages = []
 
-                st.success(f"✅ Processed {len(all_chunks)} chunks from {len(uploaded_files)} documents!")
+                st.success(f"✅ Total {len(all_chunks)} chunks from {len(uploaded_files)} documents!")
 
     if st.session_state.doc_name:
         st.info(f"📄 Active: {st.session_state.doc_name}")
@@ -81,7 +91,8 @@ else:
                 relevant_chunks = search_chunks(
                     st.session_state.collection,
                     prompt,
-                    n_results=3
+                    n_results=5,
+                    session_state=st.session_state
                 )
                 context = "\n\n".join(relevant_chunks)
 
