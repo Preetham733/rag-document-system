@@ -38,6 +38,7 @@ with st.sidebar:
     if uploaded_files:
         if st.button("Process Documents"):
             with st.spinner("Processing documents..."):
+                os.makedirs("data", exist_ok=True)
                 all_chunks = []
                 for uploaded_file in uploaded_files:
                     temp_path = f"data/{uploaded_file.name}"
