@@ -8,6 +8,9 @@ Upload any PDF and ask questions about it using AI.
 - 💬 Ask questions in plain English
 - 🤖 Answers based only on your document
 
+## 🔗 Live Demo
+[Click here to view the app](https://rag-document-system-pd7utmdceszjt6ihekdcpc.streamlit.app/)
+
 ## 🛠️ Tech Stack
 - Python, Streamlit
 - ChromaDB — Vector database
